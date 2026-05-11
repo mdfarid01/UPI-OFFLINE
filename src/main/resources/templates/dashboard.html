@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>UPI Offline Mesh</title>
+    <style>
+        :root {
+            --bg: #0b0f14;
+            --panel: #121821;
+            --panel-strong: #17202b;
+            --ink: #edf4f8;
+            --muted: #92a3b5;
+            --line: #263344;
+            --teal: #28d7a4;
+            --blue: #5aa9ff;
+            --amber: #f2b84b;
+            --red: #ff6b6b;
+            --violet: #b78cff;
+            --shadow: 0 18px 48px rgba(0, 0, 0, .3);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            background:
+                linear-gradient(135deg, rgba(40, 215, 164, .1), transparent 34%),
+                linear-gradient(225deg, rgba(90, 169, 255, .1), transparent 38%),
+                var(--bg);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            letter-spacing: 0;
+        }
+
+        button, input, select {
+            font: inherit;
+            letter-spacing: 0;
+        }
+
+        button {
+            border: 0;
+            cursor: pointer;
+        }
+
+        .shell {
+            width: min(1440px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 24px 0 32px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 16px 0 22px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .mark {
+            width: 46px;
+            height: 46px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            color: #06120f;
+            background: linear-gradient(135deg, var(--teal), #83f6d1);
+            box-shadow: 0 12px 30px rgba(40, 215, 164, .24);
+        }
+
+        .mark svg { width: 26px; height: 26px; }
+
+        h1, h2, h3, p { margin: 0; }
+
+        h1 {
+            font-size: clamp(24px, 4vw, 42px);
+            line-height: 1.03;
+            font-weight: 760;
+        }
+
+        .subhead {
+            color: var(--muted);
+            margin-top: 7px;
+            max-width: 720px;
+            line-height: 1.5;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 38px;
+            padding: 0 14px;
+            color: var(--teal);
+            background: rgba(40, 215, 164, .1);
+            border: 1px solid rgba(40, 215, 164, .28);
+            border-radius: 999px;
+            white-space: nowrap;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--teal);
+            box-shadow: 0 0 0 rgba(40, 215, 164, .58);
+            animation: pulse 1.7s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(40, 215, 164, .52); }
+            70% { box-shadow: 0 0 0 9px rgba(40, 215, 164, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(40, 215, 164, 0); }
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(310px, .82fr) minmax(480px, 1.18fr);
+            gap: 18px;
+            align-items: start;
+        }
+
+        .panel {
+            background: rgba(18, 24, 33, .92);
+            border: 1px solid rgba(130, 151, 174, .17);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 18px 18px 12px;
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: 780;
+            color: #f8fbfd;
+        }
+
+        .small {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .composer {
+            padding: 18px;
+        }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .field {
+            display: grid;
+            gap: 7px;
+        }
+
+        label {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        select, input {
+            width: 100%;
+            height: 44px;
+            color: var(--ink);
+            background: #0d131b;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            padding: 0 12px;
+            outline: none;
+            transition: border-color .18s, box-shadow .18s, background .18s;
+        }
+
+        select:focus, input:focus {
+            border-color: rgba(90, 169, 255, .75);
+            box-shadow: 0 0 0 4px rgba(90, 169, 255, .12);
+            background: #101923;
+        }
+
+        .amount-wrap {
+            position: relative;
+        }
+
+        .amount-wrap span {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-weight: 800;
+        }
+
+        .amount-wrap input { padding-left: 30px; }
+
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn {
+            min-height: 46px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            border-radius: 7px;
+            color: #07130f;
+            background: var(--teal);
+            font-weight: 800;
+            transition: transform .16s, filter .16s, background .16s;
+        }
+
+        .btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+        .btn:active { transform: translateY(0); }
+        .btn svg { width: 18px; height: 18px; flex: none; }
+
+        .btn.secondary {
+            color: #06101a;
+            background: var(--blue);
+        }
+
+        .btn.warning {
+            color: #170f04;
+            background: var(--amber);
+        }
+
+        .btn.danger {
+            color: #1b0707;
+            background: var(--red);
+        }
+
+        .quick-flow {
+            display: grid;
+            gap: 10px;
+            padding: 0 18px 18px;
+        }
+
+        .flow-item {
+            display: grid;
+            grid-template-columns: 34px 1fr auto;
+            align-items: center;
+            gap: 10px;
+            min-height: 54px;
+            padding: 10px;
+            background: #0d131b;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        .flow-step {
+            width: 34px;
+            height: 34px;
+            display: grid;
+            place-items: center;
+            border-radius: 7px;
+            color: #06120f;
+            background: #5f7184;
+            font-weight: 900;
+        }
+
+        .flow-item.active {
+            border-color: rgba(40, 215, 164, .5);
+            background: rgba(40, 215, 164, .07);
+        }
+
+        .flow-item.active .flow-step { background: var(--teal); }
+
+        .flow-copy strong {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .metric {
+            min-height: 102px;
+            padding: 16px;
+            border-radius: 8px;
+            background: rgba(18, 24, 33, .92);
+            border: 1px solid rgba(130, 151, 174, .17);
+            box-shadow: var(--shadow);
+        }
+
+        .metric-label {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 750;
+        }
+
+        .metric-value {
+            margin-top: 8px;
+            font-size: 30px;
+            line-height: 1;
+            font-weight: 850;
+        }
+
+        .metric-note {
+            margin-top: 9px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .mesh-stage {
+            position: relative;
+            min-height: 390px;
+            padding: 10px 18px 22px;
+            overflow: hidden;
+        }
+
+        .mesh-map {
+            position: relative;
+            height: 330px;
+            border-radius: 8px;
+            background:
+                linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px),
+                #0d131b;
+            background-size: 34px 34px;
+            border: 1px solid var(--line);
+        }
+
+        .mesh-lines {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .mesh-line {
+            stroke: rgba(90, 169, 255, .34);
+            stroke-width: 2;
+            stroke-dasharray: 6 8;
+            animation: dash 1.7s linear infinite;
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: -28; }
+        }
+
+        .node {
+            position: absolute;
+            width: 118px;
+            min-height: 92px;
+            display: grid;
+            place-items: center;
+            gap: 7px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(146, 163, 181, .25);
+            background: rgba(18, 24, 33, .94);
+            box-shadow: 0 12px 28px rgba(0,0,0,.25);
+            transform: translate(-50%, -50%);
+            transition: border-color .2s, transform .2s, background .2s;
+        }
+
+        .node.has-packets {
+            border-color: rgba(40, 215, 164, .68);
+            background: rgba(18, 39, 36, .96);
+        }
+
+        .node.bridge {
+            border-color: rgba(242, 184, 75, .72);
+            background: rgba(42, 32, 16, .96);
+        }
+
+        .node:hover { transform: translate(-50%, -50%) translateY(-2px); }
+
+        .node-icon {
+            width: 34px;
+            height: 34px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            color: #07130f;
+            background: #5f7184;
+        }
+
+        .node.has-packets .node-icon { background: var(--teal); }
+        .node.bridge .node-icon { background: var(--amber); }
+        .node-icon svg { width: 19px; height: 19px; }
+
+        .node-name {
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .node-meta {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .packets {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 4px;
+            min-height: 18px;
+        }
+
+        .packet-chip {
+            max-width: 58px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 3px 6px;
+            border-radius: 5px;
+            color: #09110f;
+            background: var(--teal);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: .85fr 1.15fr;
+            gap: 18px;
+            margin-top: 18px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            padding: 0 18px 18px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 520px;
+        }
+
+        th, td {
+            padding: 12px 10px;
+            border-bottom: 1px solid rgba(146, 163, 181, .13);
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        th {
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 850;
+            text-transform: uppercase;
+        }
+
+        td {
+            color: #dce8ef;
+            font-size: 13px;
+        }
+
+        .money {
+            color: var(--teal);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-weight: 900;
+        }
+
+        .status {
+            display: inline-flex;
+            min-height: 26px;
+            align-items: center;
+            padding: 0 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 850;
+            white-space: nowrap;
+        }
+
+        .status-SETTLED {
+            color: var(--teal);
+            background: rgba(40, 215, 164, .12);
+        }
+
+        .status-REJECTED, .status-INVALID {
+            color: var(--red);
+            background: rgba(255, 107, 107, .13);
+        }
+
+        .status-DUPLICATE_DROPPED {
+            color: var(--amber);
+            background: rgba(242, 184, 75, .14);
+        }
+
+        .empty {
+            padding: 24px 18px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .log-panel {
+            padding: 0 18px 18px;
+        }
+
+        #log {
+            min-height: 220px;
+            max-height: 290px;
+            overflow-y: auto;
+            padding: 12px;
+            background: #081017;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            color: #b9ffdf;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.55;
+            white-space: pre-wrap;
+        }
+
+        .toast {
+            position: fixed;
+            right: 22px;
+            bottom: 22px;
+            z-index: 5;
+            width: min(360px, calc(100vw - 44px));
+            padding: 14px 16px;
+            border-radius: 8px;
+            color: var(--ink);
+            background: #121821;
+            border: 1px solid rgba(40, 215, 164, .38);
+            box-shadow: var(--shadow);
+            opacity: 0;
+            transform: translateY(14px);
+            pointer-events: none;
+            transition: opacity .22s, transform .22s;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 1120px) {
+            .layout, .content-grid {
+                grid-template-columns: 1fr;
+            }
+            .metric-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 700px) {
+            .shell { width: min(100% - 20px, 1440px); padding-top: 10px; }
+            .topbar { align-items: flex-start; flex-direction: column; }
+            .field-grid, .actions, .metric-grid { grid-template-columns: 1fr; }
+            .mesh-stage { padding: 8px 10px 14px; }
+            .mesh-map { height: 520px; }
+            .node { width: 112px; }
+            h1 { font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <header class="topbar">
+        <div class="brand">
+            <div class="mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14"></path>
+                    <path d="M13 6l6 6-6 6"></path>
+                    <path d="M5 7v10"></path>
+                </svg>
+            </div>
+            <div>
+                <h1>UPI Offline Mesh</h1>
+                <p class="subhead">Encrypted payments move through nearby phones and settle when a bridge node comes online.</p>
+            </div>
+        </div>
+        <div class="status-pill"><span class="pulse"></span><span id="systemStatus">Backend connected</span></div>
+    </header>
+
+    <section class="metric-grid" aria-label="Live metrics">
+        <div class="metric">
+            <div class="metric-label">Devices</div>
+            <div class="metric-value" id="metricDevices">0</div>
+            <div class="metric-note">phones in mesh</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Packets</div>
+            <div class="metric-value" id="metricPackets">0</div>
+            <div class="metric-note">currently held</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Cache</div>
+            <div class="metric-value" id="metricCache">0</div>
+            <div class="metric-note">claimed hashes</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Settled</div>
+            <div class="metric-value" id="metricSettled">0</div>
+            <div class="metric-note">ledger rows</div>
+        </div>
+    </section>
+
+    <main class="layout">
+        <aside class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">Payment Console</h2>
+                    <p class="small">Compose, gossip, bridge, settle.</p>
+                </div>
+            </div>
+
+            <div class="composer">
+                <div class="field-grid">
+                    <div class="field">
+                        <label for="senderVpa">Sender</label>
+                        <select id="senderVpa">
+                            <option>alice@demo</option>
+                            <option>bob@demo</option>
+                            <option>carol@demo</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="receiverVpa">Receiver</label>
+                        <select id="receiverVpa">
+                            <option>bob@demo</option>
+                            <option>carol@demo</option>
+                            <option>alice@demo</option>
+                            <option>dave@demo</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="amount">Amount</label>
+                        <div class="amount-wrap">
+                            <span>₹</span>
+                            <input type="number" id="amount" value="500" min="1" step="1">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="pin">UPI PIN</label>
+                        <input type="password" id="pin" value="1234" maxlength="4" inputmode="numeric">
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn" onclick="sendPacket()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 2L11 13"></path><path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
+                        </svg>
+                        Inject
+                    </button>
+                    <button class="btn secondary" onclick="gossip()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 1l4 4-4 4"></path><path d="M3 11V9a4 4 0 014-4h14"></path>
+                            <path d="M7 23l-4-4 4-4"></path><path d="M21 13v2a4 4 0 01-4 4H3"></path>
+                        </svg>
+                        Gossip
+                    </button>
+                    <button class="btn warning" onclick="flushBridges()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 19V5"></path><path d="M5 12l7-7 7 7"></path><path d="M4 19h16"></path>
+                        </svg>
+                        Bridge
+                    </button>
+                    <button class="btn danger" onclick="resetMesh()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path>
+                        </svg>
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <div class="quick-flow">
+                <div class="flow-item active" id="flow1">
+                    <div class="flow-step">1</div>
+                    <div class="flow-copy"><strong>Encrypted packet</strong><span class="small">Created on sender device</span></div>
+                    <span class="small" id="flow1State">ready</span>
+                </div>
+                <div class="flow-item" id="flow2">
+                    <div class="flow-step">2</div>
+                    <div class="flow-copy"><strong>Mesh gossip</strong><span class="small">Packet spreads by hop</span></div>
+                    <span class="small" id="flow2State">waiting</span>
+                </div>
+                <div class="flow-item" id="flow3">
+                    <div class="flow-step">3</div>
+                    <div class="flow-copy"><strong>Bridge upload</strong><span class="small">Backend receives ciphertext</span></div>
+                    <span class="small" id="flow3State">waiting</span>
+                </div>
+            </div>
+        </aside>
+
+        <section class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">Live Mesh</h2>
+                    <p class="small" id="meshSummary">Waiting for state.</p>
+                </div>
+                <span class="status-pill" id="bridgeStatus"><span class="pulse"></span>bridge idle</span>
+            </div>
+            <div class="mesh-stage">
+                <div class="mesh-map" id="meshMap">
+                    <svg class="mesh-lines" id="meshLines"></svg>
+                    <div id="devices"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <section class="content-grid">
+        <div class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">Accounts</h2>
+                    <p class="small">Demo wallet balances.</p>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table id="accounts-table">
+                    <thead><tr><th>VPA</th><th>Holder</th><th>Balance</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">Transaction Ledger</h2>
+                    <p class="small">Latest backend decisions.</p>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table id="tx-table">
+                    <thead>
+                    <tr>
+                        <th>ID</th><th>From</th><th>To</th><th>Amount</th>
+                        <th>Status</th><th>Bridge</th><th>Hops</th><th>Settled</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel" style="margin-top:18px">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">Activity Log</h2>
+                <p class="small">Live UI events and backend responses.</p>
+            </div>
+        </div>
+        <div class="log-panel">
+            <div id="log">Ready.</div>
+        </div>
+    </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const devicePositions = {
+    "phone-alice": [18, 48],
+    "phone-stranger1": [38, 23],
+    "phone-stranger2": [58, 54],
+    "phone-stranger3": [40, 79],
+    "phone-bridge": [82, 45]
+};
+
+let currentStep = 1;
+let lastPacketCount = 0;
+
+function iconPhone() {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path>
+    </svg>`;
+}
+
+function iconBridge() {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 13a10 10 0 0114 0"></path><path d="M8 16a6 6 0 018 0"></path><path d="M12 20h.01"></path><path d="M12 4v3"></path>
+    </svg>`;
+}
+
+function log(msg) {
+    const el = document.getElementById('log');
+    const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    el.textContent = el.textContent === 'Ready.' ? line : `${line}\n${el.textContent}`;
+}
+
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(window.toastTimer);
+    window.toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+function setStep(step) {
+    currentStep = step;
+    [1, 2, 3].forEach(n => document.getElementById(`flow${n}`).classList.toggle('active', n === step));
+}
+
+function formatMoney(value) {
+    return `₹${Number(value || 0).toFixed(2)}`;
+}
+
+function renderLines(devices) {
+    const svg = document.getElementById('meshLines');
+    const bridge = devices.find(d => d.hasInternet);
+    const activeDevices = devices.filter(d => d.packetCount > 0);
+    const edges = [];
+
+    if (activeDevices.length > 1) {
+        for (let i = 0; i < activeDevices.length - 1; i++) {
+            edges.push([activeDevices[i], activeDevices[i + 1]]);
+        }
+    }
+    if (bridge) {
+        activeDevices.filter(d => d.deviceId !== bridge.deviceId).forEach(d => edges.push([d, bridge]));
+    }
+
+    svg.innerHTML = edges.map(([a, b]) => {
+        const pa = devicePositions[a.deviceId] || [50, 50];
+        const pb = devicePositions[b.deviceId] || [50, 50];
+        return `<line class="mesh-line" x1="${pa[0]}%" y1="${pa[1]}%" x2="${pb[0]}%" y2="${pb[1]}%"></line>`;
+    }).join('');
+}
+
+function renderDevices(devices) {
+    const devicesDiv = document.getElementById('devices');
+    devicesDiv.innerHTML = devices.map(d => {
+        const pos = devicePositions[d.deviceId] || [50, 50];
+        const packets = d.packetIds.map(id => `<span class="packet-chip" title="${id}">${id}</span>`).join('');
+        const classes = ['node', d.hasInternet ? 'bridge' : '', d.packetCount > 0 ? 'has-packets' : ''].join(' ');
+        return `
+            <div class="${classes}" style="left:${pos[0]}%;top:${pos[1]}%">
+                <div class="node-icon">${d.hasInternet ? iconBridge() : iconPhone()}</div>
+                <div class="node-name" title="${d.deviceId}">${d.deviceId.replace('phone-', '')}</div>
+                <div class="node-meta">${d.hasInternet ? '4G bridge' : 'offline'} · ${d.packetCount} pkt</div>
+                <div class="packets">${packets}</div>
+            </div>
+        `;
+    }).join('');
+    renderLines(devices);
+}
+
+function renderAccounts(accs) {
+    document.querySelector('#accounts-table tbody').innerHTML = accs.map(a => `
+        <tr>
+            <td>${a.vpa}</td>
+            <td>${a.holderName}</td>
+            <td class="money">${formatMoney(a.balance)}</td>
+        </tr>
+    `).join('');
+}
+
+function renderTransactions(txs) {
+    const body = document.querySelector('#tx-table tbody');
+    if (!txs.length) {
+        body.innerHTML = `<tr><td class="empty" colspan="8">No transactions yet.</td></tr>`;
+        return;
+    }
+    body.innerHTML = txs.map(t => `
+        <tr>
+            <td>#${t.id}</td>
+            <td>${t.senderVpa}</td>
+            <td>${t.receiverVpa}</td>
+            <td class="money">${formatMoney(t.amount)}</td>
+            <td><span class="status status-${t.status}">${t.status}</span></td>
+            <td>${t.bridgeNodeId}</td>
+            <td>${t.hopCount}</td>
+            <td class="small">${new Date(t.settledAt).toLocaleTimeString()}</td>
+        </tr>
+    `).join('');
+}
+
+function updateMetrics(mesh, txs) {
+    const devices = mesh.devices || [];
+    const packetTotal = devices.reduce((sum, d) => sum + d.packetCount, 0);
+    const bridge = devices.find(d => d.hasInternet);
+
+    document.getElementById('metricDevices').textContent = devices.length;
+    document.getElementById('metricPackets').textContent = packetTotal;
+    document.getElementById('metricCache').textContent = mesh.idempotencyCacheSize;
+    document.getElementById('metricSettled').textContent = txs.filter(t => t.status === 'SETTLED').length;
+    document.getElementById('meshSummary').textContent = `${packetTotal} packet copies across ${devices.length} devices.`;
+    document.getElementById('bridgeStatus').innerHTML = `<span class="pulse"></span>${bridge && bridge.packetCount ? 'bridge loaded' : 'bridge idle'}`;
+
+    document.getElementById('flow1State').textContent = packetTotal ? 'created' : 'ready';
+    document.getElementById('flow2State').textContent = packetTotal > 1 ? 'spread' : 'waiting';
+    document.getElementById('flow3State').textContent = mesh.idempotencyCacheSize ? 'processed' : 'waiting';
+
+    if (packetTotal !== lastPacketCount) {
+        lastPacketCount = packetTotal;
+    }
+}
+
+async function refresh() {
+    try {
+        const [mesh, accs, txs] = await Promise.all([
+            fetch('/api/mesh/state').then(r => r.json()),
+            fetch('/api/accounts').then(r => r.json()),
+            fetch('/api/transactions').then(r => r.json())
+        ]);
+        document.getElementById('systemStatus').textContent = 'Backend connected';
+        renderDevices(mesh.devices || []);
+        renderAccounts(accs);
+        renderTransactions(txs);
+        updateMetrics(mesh, txs);
+    } catch (err) {
+        document.getElementById('systemStatus').textContent = 'Backend unavailable';
+        log(`Refresh failed: ${err.message}`);
+    }
+}
+
+async function sendPacket() {
+    const senderVpa = document.getElementById('senderVpa').value;
+    const receiverVpa = document.getElementById('receiverVpa').value;
+    const amount = Number(document.getElementById('amount').value);
+    if (!amount || amount <= 0) {
+        toast('Enter a positive amount');
+        return;
+    }
+    if (senderVpa === receiverVpa) {
+        log(`Declined self-transfer: ${senderVpa} cannot send money to the same VPA`);
+        toast('Self-transfer declined');
+        return;
+    }
+
+    const body = {
+        senderVpa,
+        receiverVpa,
+        amount,
+        pin: document.getElementById('pin').value,
+        ttl: 5,
+        startDevice: 'phone-alice'
+    };
+
+    const r = await fetch('/api/demo/send', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body)
+    }).then(r => r.json());
+
+    setStep(2);
+    log(`Injected packet ${r.packetId.substring(0, 8)} at ${r.injectedAt}; TTL ${r.ttl}`);
+    log(`Ciphertext ${r.ciphertextPreview}`);
+    toast('Encrypted packet injected');
+    refresh();
+}
+
+async function gossip() {
+    const r = await fetch('/api/mesh/gossip', {method: 'POST'}).then(r => r.json());
+    setStep(3);
+    log(`Gossip round moved ${r.transfers} packet copies`);
+    toast(`${r.transfers} mesh transfers`);
+    refresh();
+}
+
+async function flushBridges() {
+    const r = await fetch('/api/mesh/flush', {method: 'POST'}).then(r => r.json());
+    log(`${r.uploadsAttempted} bridge upload attempt(s)`);
+    r.results.forEach(res => {
+        log(`${res.bridgeNode} packet ${res.packetId} -> ${res.outcome}${res.reason ? ` (${res.reason})` : ''}`);
+    });
+    toast('Bridge upload complete');
+    refresh();
+}
+
+async function resetMesh() {
+    await fetch('/api/mesh/reset', {method: 'POST'});
+    setStep(1);
+    log('Mesh and idempotency cache cleared');
+    toast('Mesh reset');
+    refresh();
+}
+
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                     HOW THE PROJECT WORKS - VISUAL FLOW                       ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+SCENARIO: Alice (offline, basement) sends ₹500 to Bob
+
+═══════════════════════════════════════════════════════════════════════════════
+
+STEP 1: ALICE CREATES PAYMENT (offline in basement)
+─────────────────────────────────────────────────
+
+   📱 Alice's Phone
+   ├─ Message: "Send ₹500 to Bob, time=2026-05-06"
+   ├─ Encryption: RSA-OAEP (Bank's public key)
+   └─ Result: "jK8$92nxL#@!mK9$xL2@9pL#!9mK$92..." (locked box 🔒)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+STEP 2: PACKET TRAVELS THROUGH MESH (Bluetooth hops)
+──────────────────────────────────────────────────
+
+   Alice (offline)
+        ↓ 📮 broadcasts locked packet
+   ┌────────────┬────────────┬────────────┬────────────┐
+   ↓            ↓            ↓            ↓            ↓
+ Phone 1      Phone 2      Phone 3      Bridge       Phone 5
+ (offline)    (offline)    (offline)   (offline)     (offline)
+  📱           📱           📱          📱 ←soon→ 📱
+                                       has internet!
+
+   Each phone just forwards the locked box 🔒
+   (They can't open it, don't understand it, don't need to)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+STEP 3: BRIDGE GETS INTERNET & UPLOADS
+──────────────────────────────────────
+
+   Bridge Phone gets 4G:
+   📱 [INTERNET] → uploads locked packet to Bank Server
+
+═══════════════════════════════════════════════════════════════════════════════
+
+STEP 4: BANK SERVER RECEIVES & PROCESSES (the critical part)
+────────────────────────────────────────────────────────────
+
+   Bank's BridgeIngestionService:
+   
+   INPUT: Locked packet 🔒 "jK8$92nxL#@!mK9$xL2@9pL#!9mK$92..."
+   
+   ┌─────────────────────────────────────────────┐
+   │ STEP 4A: Create Fingerprint (Hash)          │
+   │ ─────────────────────────────────────────   │
+   │ Locked packet → SHA256 → "abc123def456"     │
+   │ (Unique ID for THIS exact packet)           │
+   └─────────────────────────────────────────────┘
+                    ↓
+   ┌─────────────────────────────────────────────┐
+   │ STEP 4B: Check if Duplicate                 │
+   │ ─────────────────────────────────────────   │
+   │ "Have I seen fingerprint abc123def456?"     │
+   │ → NO (first time) ✅ Continue processing    │
+   └─────────────────────────────────────────────┘
+                    ↓
+   ┌─────────────────────────────────────────────┐
+   │ STEP 4C: Unlock (Decrypt) with Private Key  │
+   │ ─────────────────────────────────────────   │
+   │ Locked: "jK8$92nxL#@!mK9$xL2@9pL#!9mK$92"  │
+   │ Unlocked: "Send ₹500 to Bob, time=..."      │
+   │ (Only Bank has private key!) 🔑             │
+   └─────────────────────────────────────────────┘
+                    ↓
+   ┌─────────────────────────────────────────────┐
+   │ STEP 4D: Verify It's Fresh (Not Old)        │
+   │ ─────────────────────────────────────────   │
+   │ Time in message: 2026-05-06                 │
+   │ Current time:    2026-05-06                 │
+   │ Age: < 24 hours ✅ Accept                   │
+   └─────────────────────────────────────────────┘
+                    ↓
+   ┌─────────────────────────────────────────────┐
+   │ STEP 4E: Settle Payment (Database TX)       │
+   │ ─────────────────────────────────────────   │
+   │ 1. Debit Alice ₹500                         │
+   │ 2. Credit Bob ₹500                          │
+   │ 3. Write to Transaction Ledger              │
+   │ (All in ONE atomic transaction!)            │
+   └─────────────────────────────────────────────┘
+                    ↓
+              ✅ SETTLED
+
+═══════════════════════════════════════════════════════════════════════════════
+
+STEP 5: IDEMPOTENCY MAGIC (If duplicate arrives)
+─────────────────────────────────────────────────
+
+   What if Phone 5 (also a bridge) uploads same packet at exact same time?
+
+   Bridge 5's Upload:
+   INPUT: Same locked packet 🔒 "jK8$92nxL#@!mK9$xL2@9pL#!9mK$92..."
+   
+   ┌─────────────────────────────────────────────┐
+   │ STEP 4A: Create Fingerprint (Hash)          │
+   │ ─────────────────────────────────────────   │
+   │ Locked packet → SHA256 → "abc123def456"     │
+   │ (SAME fingerprint as Step 1!)                │
+   └─────────────────────────────────────────────┘
+                    ↓
+   ┌─────────────────────────────────────────────┐
+   │ STEP 4B: Check if Duplicate                 │
+   │ ─────────────────────────────────────────   │
+   │ "Have I seen fingerprint abc123def456?"     │
+   │ → YES (already processed!) ❌ DUPLICATE     │
+   │                                              │
+   │ Response: "DUPLICATE_DROPPED"               │
+   │ Money: NOT transferred again                │
+   └─────────────────────────────────────────────┘
+
+   ✅ Perfect! Alice charged only ₹500, not ₹1000
+
+═══════════════════════════════════════════════════════════════════════════════
+
+DATABASE STATE AFTER COMPLETION
+──────────────────────────────────
+
+   ACCOUNTS TABLE:
+   ┌─────────┬──────────────┐
+   │ Name    │ Balance      │
+   ├─────────┼──────────────┤
+   │ Alice   │ ₹500  (was ₹1000)  ✅
+   │ Bob     │ ₹1500 (was ₹1000)  ✅
+   │ Carol   │ ₹1000 (unchanged)  ✅
+   └─────────┴──────────────┘
+
+   TRANSACTION TABLE:
+   ┌─────────┬─────────┬────────┬─────────────────┐
+   │ From    │ To      │ Amount │ Status          │
+   ├─────────┼─────────┼────────┼─────────────────┤
+   │ Alice   │ Bob     │ ₹500   │ SETTLED ✅      │
+   └─────────┴─────────┴────────┴─────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+
+WHAT MAKES THIS SECURE?
+───────────────────────
+
+1️⃣ ENCRYPTION 🔐
+   └─ Strangers carry locked boxes 🔒
+      They can't open them, can't read contents, can't modify them
+      Only Bank (has private key) can open
+
+2️⃣ TAMPERING DETECTION 🛡️
+   └─ If someone modifies the encrypted message:
+      "Changed 1 bit in the locked box?"
+      Bank checks: "Auth tag doesn't match!" ❌ REJECTED
+
+3️⃣ IDEMPOTENCY ♾️
+   └─ If 100 people deliver same packet simultaneously:
+      Bank's fingerprinting system (hash) catches duplicates
+      Only processes ONCE, rejects other 99
+
+═══════════════════════════════════════════════════════════════════════════════
+
+THE CODE FILES THAT DO THIS
+───────────────────────────
+
+1. HybridCryptoService.java
+   └─ Handles encryption/decryption (RSA-OAEP + AES-256-GCM)
+
+2. IdempotencyService.java
+   └─ Handles duplicate detection (fingerprinting)
+
+3. BridgeIngestionService.java ⭐ THE MAIN FILE
+   └─ Orchestrates: receive → hash → dedupe → decrypt → settle
+
+4. SettlementService.java
+   └─ Handles the actual @Transactional payment transfer
+
+═══════════════════════════════════════════════════════════════════════════════
+
+WHY IS THIS HARD?
+──────────────────
+
+Making sure duplicate payments don't settle twice when:
+- 5 bridges upload at the exact same microsecond
+- Network is slow/fast
+- One thread finishes before another
+
+This project PROVES it can be done with:
+├─ Atomic ConcurrentHashMap (JVM level)
+├─ Unique database index (DB level)
+└─ @Transactional (ACID guarantees)
+
+═══════════════════════════════════════════════════════════════════════════════
+
