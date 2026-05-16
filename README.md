@@ -34,6 +34,11 @@ This repository is not a production UPI implementation. It is a learning/demo pr
 - [Limitations](#limitations)
 - [Troubleshooting](#troubleshooting)
 
+Extra guides:
+
+- [Deployment Guide](DEPLOYMENT.md)
+- [Project Explanation For Resume And Viva](PROJECT_EXPLANATION.md)
+
 ---
 
 ## What This Project Demonstrates
@@ -1110,4 +1115,3 @@ It is useful for learning:
 - Concurrent duplicate handling
 - Ledger-style settlement
 - UI-driven system demos
-

@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: upi-offline-mesh
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /api/mesh/state
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: default
