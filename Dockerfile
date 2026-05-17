@@ -2,6 +2,8 @@ FROM eclipse-temurin:25-jdk AS build
 
 WORKDIR /workspace
 
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
 RUN ./mvnw -B -DskipTests dependency:go-offline
